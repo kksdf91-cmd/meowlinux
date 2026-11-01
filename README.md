@@ -1,846 +1,181 @@
-# Linux
+<div align="center">
 
-Linux — Unix-подобная операционная система с открытым исходным кодом. Основой системы является Linux kernel — ядро, которое управляет процессами, памятью, устройствами, файловой системой и сетевыми ресурсами.
+# 🛡️ SentinelTrace
 
-ОС на базе Linux обычно состоит из:
+**Cross-platform security log analyzer for local SOC-style investigations.**
 
-* ядра;
-* системных библиотек;
-* системных утилит;
-* оболочки (shell);
-* сервисов;
-* пользовательских программ.
+Import Windows and Linux logs, normalize them into one schema, run YAML-based detections, triage alerts, and export reports — from a web dashboard or the CLI.
 
-Популярные дистрибутивы: Ubuntu, Debian, Fedora, RHEL, Rocky Linux, AlmaLinux.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Backend](https://img.shields.io/badge/backend-FastAPI-009688.svg)
+![Frontend](https://img.shields.io/badge/frontend-React-61dafb.svg)
+![Database](https://img.shields.io/badge/database-PostgreSQL-336791.svg)
+![Docker](https://img.shields.io/badge/docker-ready-2496ed.svg)
 
----
+[Quick start](#quick-start) · [Detections](#detection-catalog) · [Log sources](#supported-log-sources) · [API](#api) · [Roadmap](#roadmap)
 
-# Файловая система
-
-Linux использует единую иерархическую файловую систему. Её начало обозначается `/`.
-
-Основные каталоги:
-
-| Каталог    | Назначение                                                    |
-| ---------- | ------------------------------------------------------------- |
-| `/`        | корень файловой системы                                       |
-| `/home`    | домашние каталоги пользователей                               |
-| `/etc`     | конфигурационные файлы                                        |
-| `/var`     | изменяемые данные                                             |
-| `/var/log` | системные и прикладные логи                                   |
-| `/tmp`     | временные файлы                                               |
-| `/usr`     | программы, библиотеки и документация                          |
-| `/opt`     | дополнительное программное обеспечение                        |
-| `/dev`     | устройства                                                    |
-| `/proc`    | виртуальная файловая система с информацией о процессах и ядре |
-| `/boot`    | файлы, необходимые для загрузки системы                       |
-
-## Абсолютный и относительный путь
-
-Абсолютный путь начинается с `/`:
-
-```bash
-/home/user/test.txt
-```
-
-Относительный путь считается относительно текущего каталога:
-
-```bash
-./test.txt
-```
-
-`..` обозначает родительский каталог:
-
-```bash
-cd ..
-```
-
-`.` обозначает текущий каталог:
-
-```bash
-./script.sh
-```
+</div>
 
 ---
 
-# Shell
+## Overview
 
-Shell — командный интерпретатор, который принимает команды пользователя и передаёт их операционной системе.
+SentinelTrace is a Blue Team / SOC analyst toolkit that runs entirely on your machine. Feed it raw logs, and it parses them, removes duplicates, applies detection rules mapped to MITRE ATT&CK, and gives you alerts to investigate.
 
-Примеры shell:
+The web dashboard and the CLI share the **same core engine**, so results are identical no matter how you work.
 
-* Bash
-* Zsh
-* Fish
+## Features
 
-Bash является одним из наиболее распространённых shell в Linux.
+| | |
+|---|---|
+| **Windows** | `.evtx` import (Security & System) via `python-evtx`. Priority Event IDs: 4624, 4625, 4672, 4688, 4720, 4728, 4732, 4697, 7045 and more |
+| **Linux** | `auth.log`, `secure`, `syslog`, `messages`, `journalctl` JSON export, auditd lines |
+| **Detections** | 10 built-in rules: SSH brute force, password spraying, login after failures, privilege activity, new accounts, group changes, service installation, sudo bursts, cross-platform auth correlation |
+| **Safe rules** | Structured YAML conditions — no `eval()`, no arbitrary code |
+| **Storage** | PostgreSQL with Alembic migrations; fingerprint-based deduplication on re-import |
+| **Investigation** | Alerts, cases, event search and filters |
+| **Reporting** | Export to JSON, CSV or HTML |
 
-Команда:
+## Architecture
 
-```bash
-echo "Hello"
-```
-
-Shell получает команду `echo`, передаёт её на выполнение и выводит результат.
-
----
-
-# Навигация
-
-```bash
-pwd
-```
-
-Показывает текущий рабочий каталог.
-
-```bash
-ls
-```
-
-Показывает содержимое каталога.
-
-```bash
-ls -la
-```
-
-Показывает также скрытые файлы и дополнительную информацию.
-
-```bash
-cd /var/log
-```
-
-Переходит в каталог.
-
-```bash
-cd ..
-```
-
-Переходит в родительский каталог.
-
-```bash
-cd ~
-```
-
-Переходит в домашний каталог пользователя.
-
----
-
-# Файлы и каталоги
-
-Создание файла:
-
-```bash
-touch test.txt
-```
-
-Создание каталога:
-
-```bash
-mkdir test
-```
-
-Создание вложенных каталогов:
-
-```bash
-mkdir -p test/logs/app
-```
-
-Копирование:
-
-```bash
-cp file.txt backup.txt
-```
-
-Перемещение или переименование:
-
-```bash
-mv old.txt new.txt
-```
-
-Удаление файла:
-
-```bash
-rm file.txt
-```
-
-Удаление каталога:
-
-```bash
-rm -r test
-```
-
----
-
-# Права доступа
-
-Каждый файл и каталог имеет владельца, группу и набор разрешений.
-
-Пример:
-
-```text
--rwxr-xr--
-```
-
-Права разделяются на три группы:
-
-```text
-rwx | r-x | r--
- ↓     ↓     ↓
-user  group  others
-```
-
-Обозначения:
-
-* `r` — read, чтение;
-* `w` — write, запись;
-* `x` — execute, выполнение.
-
-Числовое представление:
-
-```text
-r = 4
-w = 2
-x = 1
-```
-
-Например:
-
-```text
-755
-```
-
-означает:
-
-```text
-7 = rwx
-5 = r-x
-5 = r-x
-```
-
-Изменение прав:
-
-```bash
-chmod 755 script.sh
-```
-
-Изменение владельца:
-
-```bash
-chown user:user file.txt
-```
-
-Проверка прав:
-
-```bash
-ls -l
-```
-
-Ошибка:
-
-```text
-Permission denied
-```
-
-означает, что процесс не имеет необходимого разрешения на выполнение операции.
-
----
-
-# Процессы
-
-Процесс — выполняющийся экземпляр программы.
-
-При запуске программы операционная система создаёт процесс и выделяет ему ресурсы.
-
-Каждый процесс имеет PID — Process ID.
-
-Просмотр процессов:
-
-```bash
-ps aux
-```
-
-Интерактивный просмотр:
-
-```bash
-top
-```
-
-Поиск процесса:
-
-```bash
-ps aux | grep nginx
-```
-
-Завершение процесса:
-
-```bash
-kill PID
-```
-
-Принудительное завершение:
-
-```bash
-kill -9 PID
-```
-
----
-
-# Сервисы
-
-Сервис — программа, работающая в фоне и выполняющая определённую функцию.
-
-В современных Linux-дистрибутивах для управления сервисами часто используется `systemd`.
-
-Проверка состояния:
-
-```bash
-systemctl status nginx
-```
-
-Запуск:
-
-```bash
-systemctl start nginx
-```
-
-Остановка:
-
-```bash
-systemctl stop nginx
-```
-
-Перезапуск:
-
-```bash
-systemctl restart nginx
-```
-
-Включение автоматического запуска:
-
-```bash
-systemctl enable nginx
-```
-
----
-
-# Логи
-
-Лог — запись событий, происходящих в системе или приложении.
-
-Типичная информация в логах:
-
-* время события;
-* уровень события;
-* источник;
-* сообщение;
-* идентификатор процесса;
-* ошибка или результат операции.
-
-Просмотр файла:
-
-```bash
-cat app.log
-```
-
-Постраничный просмотр:
-
-```bash
-less app.log
-```
-
-Поиск:
-
-```bash
-grep "ERROR" app.log
-```
-
-Поиск без учёта регистра:
-
-```bash
-grep -i "error" app.log
-```
-
-Просмотр новых строк в реальном времени:
-
-```bash
-tail -f app.log
-```
-
-Для systemd:
-
-```bash
-journalctl
-```
-
-Логи конкретного сервиса:
-
-```bash
-journalctl -u nginx
-```
-
-Последние записи:
-
-```bash
-journalctl -n 100
-```
-
----
-
-# Сеть
-
-IP-адрес идентифицирует сетевой интерфейс устройства.
-
-Проверка интерфейсов:
-
-```bash
-ip addr
-```
-
-Таблица маршрутизации:
-
-```bash
-ip route
-```
-
-Проверка доступности хоста:
-
-```bash
-ping 8.8.8.8
-```
-
-Проверка DNS:
-
-```bash
-nslookup example.com
-```
-
-или:
-
-```bash
-dig example.com
-```
-
----
-
-# TCP и UDP
-
-TCP — протокол с установлением соединения и контролем доставки данных.
-
-UDP — протокол без установления соединения и без гарантии доставки.
-
-TCP используется, например, HTTP/HTTPS-сервисами, SSH и базами данных.
-
-UDP часто используется DNS, DHCP, потоковой передачей и другими сервисами.
-
----
-
-# Порты
-
-Порт идентифицирует сетевой endpoint конкретного процесса или сервиса.
-
-Например:
-
-```text
-22    SSH
-53    DNS
-80    HTTP
-443   HTTPS
-```
-
-Просмотр слушающих портов:
-
-```bash
-ss -tulpn
-```
-
-Проверка конкретного TCP-порта:
-
-```bash
-nc -zv 127.0.0.1 8080
-```
-
-Если приложение не принимает соединения, возможна ошибка:
-
-```text
-Connection refused
-```
-
-Обычно это означает, что на указанном адресе и порту нет процесса, принимающего соединение, либо соединение блокируется.
-
----
-
-# HTTP
-
-HTTP — протокол обмена данными между клиентом и сервером.
-
-Основные методы:
-
-```text
-GET
-POST
-PUT
-PATCH
-DELETE
-HEAD
-OPTIONS
-```
-
-Пример запроса:
-
-```bash
-curl https://example.com
-```
-
-POST-запрос:
-
-```bash
-curl -X POST https://example.com/api/users
-```
-
-Передача JSON:
-
-```bash
-curl \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John"}' \
-  https://example.com/api/users
-```
-
----
-
-# Переменные окружения
-
-Environment variables — переменные, доступные процессам во время выполнения.
-
-Просмотр:
-
-```bash
-env
-```
-
-Конкретная переменная:
-
-```bash
-echo $PATH
-```
-
-Создание:
-
-```bash
-export TEST_ENV=staging
-```
-
-Переменные часто используются для передачи конфигурации приложения:
-
-```text
-DATABASE_HOST
-DATABASE_PORT
-DATABASE_NAME
-API_URL
-ENVIRONMENT
-```
-
----
-
-# Диски и файловое пространство
-
-Проверка свободного места:
-
-```bash
-df -h
-```
-
-Размер каталога:
-
-```bash
-du -sh /var/log
-```
-
-Список файлов с размерами:
-
-```bash
-ls -lh
-```
-
-Ошибка:
-
-```text
-No space left on device
-```
-
-означает, что файловая система не может выделить дополнительное пространство.
-
----
-
-# Память
-
-Просмотр использования памяти:
-
-```bash
-free -h
-```
-
-Информация о процессах:
-
-```bash
-top
-```
-
-Основные показатели:
-
-* total — общий объём памяти;
-* used — используемая память;
-* free — свободная память;
-* available — память, доступная для новых процессов;
-* swap — область на диске, используемая как дополнительная виртуальная память.
-
----
-
-# SSH
-
-SSH — протокол защищённого удалённого доступа.
-
-Подключение:
-
-```bash
-ssh user@192.168.1.10
-```
-
-Копирование файла на удалённый сервер:
-
-```bash
-scp file.txt user@server:/tmp/
-```
-
-Копирование файла с сервера:
-
-```bash
-scp user@server:/tmp/file.txt .
-```
-
-Аутентификация может выполняться с использованием пароля или SSH-ключей.
-
----
-
-# Перенаправление вывода
-
-Стандартный вывод:
-
-```bash
-command > output.txt
-```
-
-Добавление в файл:
-
-```bash
-command >> output.txt
-```
-
-Стандартный поток ошибок:
-
-```bash
-command 2> error.log
-```
-
-Объединение stdout и stderr:
-
-```bash
-command > output.log 2>&1
-```
-
----
-
-# Pipes
-
-Pipe `|` передаёт stdout одной команды на stdin другой.
-
-Например:
-
-```bash
-ps aux | grep nginx
 ```
-
-Сначала выполняется:
-
-```bash
-ps aux
-```
-
-а его вывод передаётся:
-
-```bash
-grep nginx
-```
-
-Другой пример:
-
-```bash
-cat app.log | grep ERROR
+React UI ──► FastAPI ──► Repositories ──► PostgreSQL
+                ▲
+Typer CLI ──────┴──► Core (parsers + DetectionEngine + rules/*.yaml)
 ```
-
----
-
-# Поиск файлов
 
-Поиск по имени:
+Details: [docs/architecture.md](docs/architecture.md)
 
-```bash
-find /var/log -name "*.log"
-```
+## Quick start
 
-Поиск файлов определённого размера:
+### Docker (recommended)
 
 ```bash
-find . -size +100M
-```
+git clone https://github.com/hellstation/cross-platform-log-analyzer.git
+cd cross-platform-log-analyzer
 
-Поиск текста:
-
-```bash
-grep -R "ERROR" /var/log
+cp .env.example .env
+docker compose up --build
 ```
-
----
 
-# Коды завершения
+| Service   | URL                                |
+|-----------|------------------------------------|
+| Dashboard | http://localhost:5173              |
+| API docs  | http://localhost:8000/api/docs     |
+| Health    | http://localhost:8000/api/health   |
 
-После выполнения команды shell сохраняет её exit status.
+Try the CLI inside the backend container with a bundled sample log:
 
-Проверка:
-
 ```bash
-echo $?
-```
-
-Обычно:
-
-```text
-0
+docker compose exec backend sentineltrace doctor
+docker compose exec backend sentineltrace rules list
+docker compose exec backend sentineltrace import /app/fixtures/linux/auth_bruteforce.log --platform linux
+docker compose exec backend sentineltrace hunt --since 24h
 ```
-
-означает успешное выполнение.
-
-Ненулевое значение означает ошибку или другое состояние, определённое программой.
 
----
+### Local (without Docker)
 
-# Переменные и команды shell
+You need a running PostgreSQL instance.
 
-Переменная:
-
-```bash
-NAME="test"
-```
-
-Использование:
-
 ```bash
-echo $NAME
-```
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 
-Командная подстановка:
-
-```bash
-DATE=$(date)
+export DATABASE_URL=postgresql+psycopg://sentineltrace:changeme_local_only@localhost:5432/sentineltrace
+export RULES_PATH=$(pwd)/rules
+alembic upgrade head
 ```
 
-После этого:
+## CLI usage
 
 ```bash
-echo $DATE
-```
+# Analyze a file
+sentineltrace analyze ../fixtures/linux/auth_bruteforce.log
 
----
+# Import into the database
+sentineltrace import ../fixtures/linux/password_spray.log --platform linux
 
-# Символические ссылки
+# Hunt through stored events
+sentineltrace hunt --severity high
 
-Symbolic link — специальный файл, содержащий ссылку на другой файл или каталог.
+# Query events
+sentineltrace events list --username alice
 
-Создание:
-
-```bash
-ln -s /var/log/app.log app.log
+# Export a report
+sentineltrace export --format html --output report.html
 ```
 
-Проверка:
-
-```bash
-ls -l
-```
+Run `sentineltrace --help` for all commands.
 
-Символическая ссылка может указывать на другой путь в файловой системе.
+## Detection catalog
 
----
+| ID            | Name                                      | Platform | MITRE ATT&CK |
+|---------------|-------------------------------------------|----------|--------------|
+| `DET-LNX-001` | SSH Brute Force                           | Linux    | T1110.001    |
+| `DET-LNX-002` | Password Spraying                         | Linux    | T1110.003    |
+| `DET-LNX-003` | Successful Login After Failures           | Linux    | T1110        |
+| `DET-LNX-004` | Linux Sudo Activity                       | Linux    | T1548.003    |
+| `DET-WIN-001` | Windows Failed Logons                     | Windows  | T1110        |
+| `DET-WIN-002` | Suspicious Privilege Activity             | Windows  | T1078        |
+| `DET-WIN-003` | New Windows Account                       | Windows  | T1136.001    |
+| `DET-WIN-004` | Security Group Modification               | Windows  | T1098        |
+| `DET-WIN-005` | Suspicious Service Installation           | Windows  | T1543.003    |
+| `DET-X-001`   | Cross-Platform Authentication Correlation | Any      | T1078        |
 
-# Архивы
+Rules live in `backend/rules/*.yaml`. Tune `window_minutes` and `threshold` per rule to match your environment.
 
-Создание tar-архива:
+## Supported log sources
 
-```bash
-tar -cf archive.tar directory/
-```
+| Source                    | Format / file             |
+|---------------------------|---------------------------|
+| Windows Security / System | `.evtx`                   |
+| Debian / Ubuntu auth      | `auth.log`                |
+| RHEL auth                 | `secure`                  |
+| Syslog                    | `syslog`, `messages`      |
+| systemd                   | `journalctl` JSON export  |
+| auditd                    | `audit.log` (line parser) |
 
-Распаковка:
+> **Note:** synthetic Linux scenarios are included in `fixtures/linux/`. Binary `.evtx` fixtures are intentionally not shipped — use your own exports for Windows testing.
 
-```bash
-tar -xf archive.tar
-```
+## API
 
-Создание gzip-сжатого архива:
+Interactive OpenAPI docs are available at `/api/docs`.
 
-```bash
-tar -czf archive.tar.gz directory/
-```
+| Endpoint                                  | Purpose                         |
+|-------------------------------------------|---------------------------------|
+| `GET /api/health`                         | Health check                    |
+| `GET, POST /api/ingestions`               | List / create ingestions        |
+| `POST /api/ingestions/hunt`               | Run detections over stored data |
+| `GET /api/events`, `GET /api/events/{id}` | Search and view events          |
+| `GET, PATCH /api/alerts`                  | List / update alerts            |
+| `GET /api/rules`, `GET /api/rules/validate` | List and validate rules       |
+| `GET, POST, PATCH /api/cases`             | Case management                 |
+| `GET /api/statistics/*`                   | Dashboard statistics            |
+| `GET /api/export?format=json\|csv\|html`  | Export reports                  |
 
-Распаковка:
+## Testing
 
 ```bash
-tar -xzf archive.tar.gz
-```
-
----
-
-# Основные ошибки
-
-```text
-Permission denied
-```
-
-Недостаточно прав для выполнения операции.
-
-```text
-No such file or directory
-```
-
-Указанный файл или каталог не существует либо путь указан неправильно.
-
-```text
-Connection refused
-```
-
-Соединение отклонено. Обычно на указанном порту нет слушающего сервиса.
-
-```text
-Connection timed out
-```
-
-Ответ от удалённой стороны не получен за установленное время.
-
-```text
-No space left on device
+cd backend
+pip install -e ".[dev]"
+RULES_PATH=$PWD/rules pytest -q
+ruff check src tests
 ```
 
-Недостаточно места в файловой системе.
+GitHub Actions runs `pytest`, Ruff and the frontend build on every push.
 
-```text
-command not found
-```
+## Security considerations
 
-Shell не смог найти указанную команду.
+- Built for **local, trusted** use — there is no authentication by default.
+- Uploads: size limits, filename sanitization, uploaded content is never executed.
+- HTML export escapes all user-controlled data.
+- Detection rules use a limited condition DSL, not arbitrary code.
+- Never expose PostgreSQL publicly. If the API is reachable from a network, rotate the credentials in `.env`.
 
-```text
-Address already in use
-```
+## Limitations
 
-Указанный сетевой порт уже используется другим процессом.
+- No Kafka / Elasticsearch / Kubernetes in the MVP.
+- Cross-platform correlation is a time / IP / user heuristic, not a full graph engine.
+- journald and auditd formats vary between distros; edge cases may end up in `parse_errors`.
+- UI settings store display preferences locally; server-side detection windows use API/env defaults.
